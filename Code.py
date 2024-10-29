@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVR
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import LinearRegression
+import seaborn as sns
 from sklearn import linear_model
 from sklearn.metrics import mean_absolute_error
 from IPython.display import display
@@ -38,6 +39,7 @@ def get_filtered_data(df):
     required_columns = ['Batch01_GIN', 'Batch01_Lot', 'Batch01_WGHT', 'Batch01_stred', 'Batch01_cont', 'Batch01_Nazev', 'Batch01_CisloZakazky']
     for col in required_columns:
         df = df[(df[col] != 0) & (df[col].notna())]
+
 
     # Vynechání řádků, kde je ve sloupci 'CasZahajeni' hodnota 1900-01-01 00:00:00
     df = df[df['CasZahajeni'] != pd.Timestamp('1900-01-01 00:00:00')]
@@ -162,28 +164,34 @@ def read_data_from_csv():
 def machine_learning(df_finished, df_unfinished):
 
     # One Hot Encoding pro Nazev
-    ohe_nazev = pd.get_dummies(df_finished['Nazev'])
+    ohe_nazev = pd.get_dummies(df_finished['Nazev']).astype('float64')
 
-    ohe_nazev = ohe_nazev.astype(int)
+    df_prepared = (pd.concat([df_finished.drop(columns=['Nazev']).reset_index(drop=True), ohe_nazev.reset_index(drop=True)], axis=1))
 
-    X = pd.concat([df_finished[['Total_WGHT', 'Program','Pondeli']], ohe_nazev], axis=1)
-    y = df_finished['DelkaTrvani']                
+    print(df_prepared)
+
+    # ===============================================================================================================================================
+
+    # ===============================================================================================================================================
+
+    X = pd.concat([df_finished[['Total_WGHT', 'Program','Pondeli']], ohe_nazev], axis=1).astype('float64')
+    y = df_finished['DelkaTrvani'].astype('float64')           
     
     # Split the dataset into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     # Decision Tree model
     model = DecisionTreeRegressor(random_state=42)
     
     # Train the model
-    model.fit(X_train, y_train)
+    model.fit(X, y)
     
     # Make predictions on the test set
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X)
     
     # Evaluate the model
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
+    mae = mean_absolute_error(y, y_pred)
+    mse = mean_squared_error(y, y_pred)
     rmse = np.sqrt(mse)
     
     # Display evaluation metrics
@@ -192,10 +200,27 @@ def machine_learning(df_finished, df_unfinished):
     print(f"Mean Squared Error (MSE): {mse}")
     print(f"Root Mean Squared Error (RMSE): {rmse}")
     print("\n")
+
+    # Konkrétní hodnoty pro predikci
+    total_weight = 10200  # zadaná hodnota
+    program = 10          # zadaná hodnota
+    pondeli = 0          # zadaná hodnota
+    nazev_values = ['Predtah']  # název pro One Hot Encoding
+
+    # Příprava dat pro predikci
+    input_data = pd.DataFrame({
+        'Total_WGHT': [total_weight],
+        'Program': [program],
+        'Pondeli': [pondeli]
+    })
     
-    # Show some of the predicted vs actual values
-    comparison_df = pd.DataFrame({'Predicted': y_pred[:10], 'Actual': y_test[:10].values})
-    print(comparison_df)
+    # Přidání sloupců z One Hot Encoding na základě `nazev_values`
+    for col in ohe_nazev.columns:
+        input_data[col] = [1.0 if col.strip() in nazev_values else 0.0]
+
+    # Předpověď a výpis výsledku
+    prediction = model.predict(input_data)
+    print(f"Předpovězená DelkaTrvani pro zadané parametry: {prediction[0]}")
 
     return df_finished, df_unfinished
 
