@@ -78,7 +78,7 @@ def get_filtered_data(df):
     #df_cleaned = df_cleaned.drop(columns=['CasZahajeni', 'CasUkonceni'])
 
     # Omezení DataFrame na sloupce, které obsahují 'WGHT', 'Nazev', 'DelkaTrvani' nebo 'ID'
-    filtered_columns = [col for col in df_cleaned.columns if 'WGHT' in col or 'Nazev' in col or col == 'DelkaTrvani' or col == 'ID' or col == 'Program' or col == 'Pondeli']
+    filtered_columns = [col for col in df_cleaned.columns if 'WGHT' in col or 'Nazev' in col or col == 'DelkaTrvani' or col == 'Program' or col == 'Pondeli']
     df_filtered = df_cleaned[filtered_columns]
 
     # Vynechání řádků, kde je hodnota ve sloupci 'DelkaTrvani' menší než 3600 sekund (1 hodina)
@@ -100,9 +100,6 @@ def get_filtered_data(df):
 
     # Odstranění původních "WGHT" sloupců
     df_filtered = df_filtered.drop(columns=wght_columns)
-
-    # Vymazani sloupce ID
-    df_filtered = df_filtered.drop(columns=['ID'])
 
     # Přenechání sloupců 'Total_WGHT' a 'Program' atd..
     df_filtered = df_filtered[['Total_WGHT', 'Program', 'DelkaTrvani', 'Batch01_Nazev', 'Pondeli']]
@@ -222,7 +219,5 @@ df_finished, df_unfinished = machine_learning(df_finished, df_unfinished)
 
 #Vykreslení grafu
 #plot_graph(df_finished)
-
-input("Stiskněte Enter pro ukončení programu...")
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
