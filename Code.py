@@ -164,71 +164,48 @@ def read_data_from_csv():
 # Funkce pro týkající se strojového učení
 def machine_learning(df_finished, df_unfinished):
 
-    # One Hot Encoding pro Nazev
+    # One Hot Encoding pro sloupec 'Nazev'
     ohe_nazev = pd.get_dummies(df_finished['Nazev']).astype('float64')
+    df_prepared = pd.concat([df_finished.drop(columns=['Nazev']).reset_index(drop=True), ohe_nazev.reset_index(drop=True)], axis=1)
 
-    df_prepared = (pd.concat([df_finished.drop(columns=['Nazev']).reset_index(drop=True), ohe_nazev.reset_index(drop=True)], axis=1))
+    # Definice vstupních a cílových proměnných pro trénink modelu
+    X = df_prepared[['Total_WGHT', 'Program', 'Pondeli'] + list(ohe_nazev.columns)]
+    y = df_prepared['DelkaTrvani']
 
-    #print(df_prepared)
+    # Standardizace vstupních dat
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-    # ===============================================================================================================================================
-
-    # ===============================================================================================================================================
-
-    X = pd.concat([df_finished[['Total_WGHT', 'Program','Pondeli']], ohe_nazev], axis=1).astype('float64')
-    y = df_finished['DelkaTrvani'].astype('float64')           
-    
-    # Split the dataset into training and testing sets
-    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    # Vytvoření polynomických funkcí (druhý stupeň) pro zohlednění interakčních prvků
-    poly = PolynomialFeatures(degree=2, include_bias=False)
-    X_poly = poly.fit_transform(X)
-
-    # Inicializace a trénink modelu lineární regrese
+    # Trénink lineárního regresního modelu
     model = LinearRegression()
-    model.fit(X_poly, y)
-    
-    # Make predictions on the test set
-    y_pred = model.predict(X_poly)
-    
-    # Evaluate the model
-    mae = mean_absolute_error(y, y_pred)
-    mse = mean_squared_error(y, y_pred)
-    rmse = np.sqrt(mse)
-    
-    # Display evaluation metrics
-    print(f"Decision Tree Model")
-    print(f"Mean Absolute Error (MAE): {mae}")
-    print(f"Mean Squared Error (MSE): {mse}")
-    print(f"Root Mean Squared Error (RMSE): {rmse}")
-    print("\n")
+    model.fit(X_scaled, y)
 
-    # Konkrétní hodnoty pro predikci
-    total_weight = 9080  # zadaná hodnota
-    program = 14          # zadaná hodnota
+    # Parametry pro filtrování a predikci
+    total_weight = 10200  # zadaná hodnota
+    program = 13         # zadaná hodnota
     pondeli = 1          # zadaná hodnota
-    nazev_values = ['VD']  # název pro One Hot Encoding
+    nazev = ['Predtah']  # název pro One Hot Encoding
 
-    # Příprava dat pro predikci
+    # Připravit vstupní data v souladu s OHE sloupci
     input_data = pd.DataFrame({
         'Total_WGHT': [total_weight],
         'Program': [program],
         'Pondeli': [pondeli]
     })
-    
-    # Přidání sloupců z One Hot Encoding na základě `nazev_values`
+
     for col in ohe_nazev.columns:
-        input_data[col] = [1.0 if col.strip() in nazev_values else 0.0]
+        input_data[col] = [1.0 if col in nazev else 0.0]
 
-    # Transformace predikčního vstupu polynomickými funkcemi
-    input_data_poly = poly.transform(input_data)
+    # Standardizace vstupních dat pro predikci
+    input_data_scaled = scaler.transform(input_data)
 
-    # Předpověď a výpis výsledku
-    prediction = model.predict(input_data_poly)
+    # Predikce
+    prediction = model.predict(input_data_scaled)
     print(f"Předpovězená DelkaTrvani pro zadané parametry: {prediction[0]}")
 
     return df_finished, df_unfinished
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
