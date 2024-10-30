@@ -4,6 +4,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVR
 from sklearn.linear_model import Ridge
@@ -168,7 +169,7 @@ def machine_learning(df_finished, df_unfinished):
 
     df_prepared = (pd.concat([df_finished.drop(columns=['Nazev']).reset_index(drop=True), ohe_nazev.reset_index(drop=True)], axis=1))
 
-    print(df_prepared)
+    #print(df_prepared)
 
     # ===============================================================================================================================================
 
@@ -180,14 +181,16 @@ def machine_learning(df_finished, df_unfinished):
     # Split the dataset into training and testing sets
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    # Decision Tree model
-    model = DecisionTreeRegressor(random_state=42)
-    
-    # Train the model
-    model.fit(X, y)
+    # Vytvoření polynomických funkcí (druhý stupeň) pro zohlednění interakčních prvků
+    poly = PolynomialFeatures(degree=2, include_bias=False)
+    X_poly = poly.fit_transform(X)
+
+    # Inicializace a trénink modelu lineární regrese
+    model = LinearRegression()
+    model.fit(X_poly, y)
     
     # Make predictions on the test set
-    y_pred = model.predict(X)
+    y_pred = model.predict(X_poly)
     
     # Evaluate the model
     mae = mean_absolute_error(y, y_pred)
@@ -202,10 +205,10 @@ def machine_learning(df_finished, df_unfinished):
     print("\n")
 
     # Konkrétní hodnoty pro predikci
-    total_weight = 10200  # zadaná hodnota
-    program = 10          # zadaná hodnota
-    pondeli = 0          # zadaná hodnota
-    nazev_values = ['Predtah']  # název pro One Hot Encoding
+    total_weight = 9080  # zadaná hodnota
+    program = 14          # zadaná hodnota
+    pondeli = 1          # zadaná hodnota
+    nazev_values = ['VD']  # název pro One Hot Encoding
 
     # Příprava dat pro predikci
     input_data = pd.DataFrame({
@@ -218,8 +221,11 @@ def machine_learning(df_finished, df_unfinished):
     for col in ohe_nazev.columns:
         input_data[col] = [1.0 if col.strip() in nazev_values else 0.0]
 
+    # Transformace predikčního vstupu polynomickými funkcemi
+    input_data_poly = poly.transform(input_data)
+
     # Předpověď a výpis výsledku
-    prediction = model.predict(input_data)
+    prediction = model.predict(input_data_poly)
     print(f"Předpovězená DelkaTrvani pro zadané parametry: {prediction[0]}")
 
     return df_finished, df_unfinished
